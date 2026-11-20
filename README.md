@@ -42,7 +42,7 @@ This project talks to ComfyUI only over its API and never bundles it.
 ## Install
 
 ```bash
-pip install git+https://github.com/open-daemon/opendaemon-comfyui-mcp
+pip install opendaemon-comfyui-mcp
 ```
 
 Or from a downloaded copy of this repo: `pip install .`
@@ -147,3 +147,5 @@ The server also gives the model a short guide to prompting video models (the res
 MIT, see [LICENSE](LICENSE). ComfyUI (GPL-3.0), the node packs and the models have their own licences.
 
 Made by [OpenDaemon](https://open-daemon.com).
+
+<!-- mcp-name: io.github.open-daemon/opendaemon-comfyui-mcp -->
