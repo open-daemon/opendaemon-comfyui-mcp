@@ -1,0 +1,37 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.open-daemon/opendaemon-comfyui-mcp",
+  "title": "OpenDaemon ComfyUI",
+  "description": "Make AI videos with ComfyUI on your own GPU: render, review, edit and export clips.",
+  "websiteUrl": "https://open-daemon.com",
+  "repository": {
+    "url": "https://github.com/open-daemon/opendaemon-comfyui-mcp",
+    "source": "github",
+    "id": "1464968155"
+  },
+  "version": "0.1.0",
+  "packages": [
+    {
+      "registryType": "pypi",
+      "identifier": "opendaemon-comfyui-mcp",
+      "version": "0.1.0",
+      "transport": {
+        "type": "stdio"
+      },
+      "environmentVariables": [
+        {
+          "name": "COMFYUI_DIR",
+          "description": "Path to your ComfyUI folder, e.g. C:/ComfyUI_windows_portable/ComfyUI",
+          "isRequired": false,
+          "format": "string"
+        },
+        {
+          "name": "COMFYUI_URL",
+          "description": "ComfyUI's address (default http://127.0.0.1:8188)",
+          "isRequired": false,
+          "format": "string"
+        }
+      ]
+    }
+  ]
+}
