@@ -1,0 +1,224 @@
+{
+ "PRESETS": {
+  "distilled": {
+   "checkpoint": "ltxv-2b-0.9.8-distilled-fp8.safetensors",
+   "cfg": 1,
+   "steps": 8,
+   "schedule": "manual",
+   "sigmas": "1.0, 0.9937, 0.9875, 0.9812, 0.975, 0.9094, 0.725, 0.4219, 0.0",
+   "cfps": 0,
+   "comp": 35
+  },
+  "dev": {
+   "checkpoint": "ltxv-2b-0.9.6-dev-04-25.safetensors",
+   "cfg": 3,
+   "steps": 30,
+   "schedule": "auto",
+   "cfps": 0,
+   "comp": 35
+  },
+  "ltx13": {
+   "family": "ltx13",
+   "unet": "LTXV-13B-0.9.8-distilled-Q3_K_M.gguf",
+   "checkpoint": "ltxv-2b-0.9.8-distilled-fp8.safetensors",
+   "cfg": 1,
+   "steps": 8,
+   "schedule": "manual",
+   "sigmas": "1.0, 0.9937, 0.9875, 0.9812, 0.975, 0.9094, 0.725, 0.4219, 0.0",
+   "cfps": 0,
+   "comp": 35,
+   "sampler": "euler"
+  },
+  "vace": {
+   "family": "vace",
+   "unet": "wan2.1_vace_1.3B_fp16.safetensors",
+   "steps": 20,
+   "cfg": 6,
+   "sampler": "uni_pc",
+   "scheduler": "simple",
+   "shift": 8,
+   "width": 640,
+   "height": 352,
+   "frames": 49,
+   "fps": 16,
+   "strength": 1,
+   "refine": false
+  }
+ },
+ "BASE": {
+  "prompt": "A cute round red Pixar-style mascot with antennae stands still in front of a glowing purple magic portal. Its big mouth is frozen wide open in a huge happy grin, showing white teeth and a pink tongue. It slowly raises one hand. Its antennae wobble softly. Slow, calm, smooth 3D animation, cinematic lighting, static camera.",
+  "negative": "talking, speaking, moving mouth, lip movement, chattering, worst quality, inconsistent motion, blurry, jittery, distorted, deformed, extra limbs, watermark, text",
+  "text_encoder": "t5xxl_fp8_e4m3fn.safetensors",
+  "width": 768,
+  "height": 416,
+  "frames": 73,
+  "fps": 24,
+  "seed": -1,
+  "sampler": "euler",
+  "strength": 1,
+  "max_shift": 2.05,
+  "base_shift": 0.95,
+  "terminal": 0.1,
+  "tile": 256,
+  "stretch": true,
+  "refine": false,
+  "upscaler": "ltxv-spatial-upscaler-0.9.8.safetensors",
+  "refine_sigmas": "0.9094, 0.725, 0.4219, 0.0",
+  "family": "ltx",
+  "unet": "",
+  "scheduler": "simple",
+  "shift": 8
+ },
+ "STYLES": [
+  {
+   "name": "Balanced (start here)",
+   "help": "The settings that gave our best clips. Try this first.",
+   "set": {}
+  },
+  {
+   "name": "Soft and calm",
+   "help": "Small, slow, gentle movement. Good for faces and close-ups.",
+   "set": {
+    "comp": 30,
+    "cfps": 32
+   },
+   "add": "Slow, gentle, subtle motion."
+  },
+  {
+   "name": "Very soft (barely moves)",
+   "help": "Almost a living photo: breathing, blinking, light sway.",
+   "set": {
+    "comp": 25,
+    "cfps": 40
+   },
+   "add": "Very subtle motion, almost still."
+  },
+  {
+   "name": "Lively",
+   "help": "More movement and energy than Balanced.",
+   "set": {
+    "comp": 45
+   },
+   "add": "Energetic, bouncy motion."
+  },
+  {
+   "name": "Strong (big moves)",
+   "help": "Big movements. Can change the character more - try a few seeds.",
+   "set": {
+    "comp": 55,
+    "max_shift": 2.3
+   },
+   "add": "Big, dynamic motion."
+  },
+  {
+   "name": "Stay close to the picture",
+   "help": "Keeps the look of your picture as exact as possible. Moves less.",
+   "set": {
+    "comp": 20,
+    "cfps": 30
+   }
+  },
+  {
+   "name": "Free and creative",
+   "help": "Lets the model change things more. Surprising results, good and bad.",
+   "set": {
+    "comp": 60,
+    "strength": 0.9
+   }
+  },
+  {
+   "name": "Sharper details",
+   "help": "Spends more effort on fine detail (eyes, edges), a bit less on motion.",
+   "set": {
+    "comp": 30,
+    "max_shift": 1.8
+   }
+  },
+  {
+   "name": "Slow motion",
+   "help": "Same movement, played slower. The video gets longer (about 4 s).",
+   "set": {
+    "fps": 18,
+    "cfps": 24
+   },
+   "add": "Slow motion."
+  },
+  {
+   "name": "Fast and snappy",
+   "help": "Quicker movement, shorter video (about 2.5 s).",
+   "set": {
+    "fps": 30,
+    "cfps": 24,
+    "comp": 40
+   }
+  },
+  {
+   "name": "Short clip (2 s)",
+   "help": "Shorter and faster to make. The end melts less.",
+   "set": {
+    "frames": 49
+   }
+  },
+  {
+   "name": "Clip 3 s",
+   "help": "A bit longer than the default 2 s. Still holds together well.",
+   "set": {
+    "frames": 73
+   }
+  },
+  {
+   "name": "Clip 4 s",
+   "help": "Longer video. Keep the action simple so the end does not drift.",
+   "set": {
+    "frames": 97
+   }
+  },
+  {
+   "name": "Long clip (5 s)",
+   "help": "Longer video. The end can melt or drift - use a simple action.",
+   "set": {
+    "frames": 121
+   }
+  }
+ ],
+ "QUALITY": [
+  {
+   "name": "Draft - fastest",
+   "help": "512x288. About 2-3 min on a low-end GTX 1050 Ti 4 GB; a better card is faster. For trying ideas and seeds.",
+   "w": 512,
+   "h": 288
+  },
+  {
+   "name": "Normal (recommended)",
+   "help": "768x416. About 6 min on a low-end GTX 1050 Ti 4 GB; a better card is faster. What all our good clips used.",
+   "w": 768,
+   "h": 416
+  },
+  {
+   "name": "High",
+   "help": "960x544. Sharper, slower (about 10-12 min on a low-end GTX 1050 Ti 4 GB; a better card is faster). May run out of memory on a 4 GB card.",
+   "w": 960,
+   "h": 544
+  },
+  {
+   "name": "Best - Full HD",
+   "help": "Normal, then a second pass to 1080p. Much sharper, very slow (about 30-50 min on a low-end GTX 1050 Ti 4 GB; a better card is faster).",
+   "w": 768,
+   "h": 416,
+   "refine": true
+  },
+  {
+   "name": "Manual size",
+   "help": "Type your own width and height (multiples of 32). Bigger = slower.",
+   "manual": true
+  }
+ ],
+ "CAM": {
+  "still": "Static camera.",
+  "zoom": "Slow camera zoom in.",
+  "zoomout": "Slow camera zoom out.",
+  "panr": "Slow camera pan to the right.",
+  "panl": "Slow camera pan to the left."
+ },
+ "AVOID": "extra arms, extra hands, blurry, deformed, talking, text, watermark"
+}

@@ -1,0 +1,723 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AI Video Pipeline</title>
+<style>
+  :root { --bg:#0e0f13; --panel:#171920; --line:#2a2d38; --text:#ffffff; --accent:#7c5cff; --ok:#3ecf8e; --bad:#ff5c7a; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--text); font:14px/1.45 system-ui, Segoe UI, sans-serif; }
+  header { display:flex; align-items:center; gap:12px; padding:14px 20px; border-bottom:1px solid var(--line); }
+  header h1 { font-size:18px; margin:0; }
+  /* Inside the OpenDaemon tab, the tab's own bar already shows the title and status. */
+  .embedded header { display:none; }
+  .dot { width:10px; height:10px; border-radius:50%; background:var(--bad); display:inline-block; }
+  .dot.up { background:var(--ok); }
+  main { display:grid; grid-template-columns: 430px 1fr; gap:16px; padding:16px 20px; }
+  @media (max-width: 900px) { main { grid-template-columns: 1fr; } }
+  section { background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:14px; }
+  h2 { font-size:14px; margin:14px 0 8px; text-transform:uppercase; letter-spacing:.05em; }
+  h2:first-child { margin-top:0; }
+  label { display:block; margin:8px 0 2px; font-weight:600; }
+  .help { font-size:12px; margin-bottom:4px; color:var(--text); opacity:.95; }
+  input, select, textarea { width:100%; background:#0b0c10; color:var(--text); border:1px solid var(--line); border-radius:6px; padding:7px 8px; font:inherit; }
+  textarea { min-height:90px; resize:vertical; }
+  .row { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  .row3 { display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; }
+  .chk { display:flex; gap:8px; align-items:center; margin-top:10px; }
+  .chk input { width:auto; }
+  .tabs { display:flex; gap:0; margin-bottom:6px; }
+  .tabs button { flex:1; background:transparent; border:1px solid var(--line); border-radius:0; }
+  .tabs button:first-child { border-radius:6px 0 0 6px; } .tabs button:last-child { border-radius:0 6px 6px 0; }
+  .tabs button.on { background:var(--accent); border-color:var(--accent); }
+  #easyBox { border-left:3px solid var(--accent); padding-left:10px; margin-top:8px; }
+  body.easy #manualBox, body.easy #go3 { display:none; }
+  body:not(.easy) #easyBox { display:none; }
+  button { background:var(--accent); color:#fff; border:0; border-radius:6px; padding:9px 14px; font:inherit; font-weight:600; cursor:pointer; }
+  button.ghost { background:transparent; border:1px solid var(--line); }
+  button:disabled { opacity:.5; cursor:default; }
+  .bar { display:flex; gap:8px; flex-wrap:wrap; margin-top:14px; }
+  .preview img { max-width:100%; border-radius:6px; margin-top:6px; }
+  .job { border:1px solid var(--line); border-radius:8px; padding:10px; margin-bottom:10px; }
+  .job video, .card video { width:100%; aspect-ratio:768/416; border-radius:6px; background:#000; display:block; }
+  .grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(280px,1fr)); gap:12px; }
+  .card { border:1px solid var(--line); border-radius:8px; padding:8px; }
+  .meta { font-size:12px; margin:6px 0; word-break:break-word; }
+  .card .when { font-size:12px; color:#fff; margin:6px 0 0; }
+  .err { color:var(--bad); white-space:pre-wrap; font-size:12px; }
+  details summary { cursor:pointer; font-weight:600; margin-top:12px; }
+  .tip { position:relative; display:inline-block; margin-left:6px; width:17px; height:17px; line-height:17px; text-align:center;
+         border-radius:50%; background:var(--line); color:#fff; font-size:11px; font-weight:700; cursor:help; }
+  .tip:hover::after { content:attr(data-tip); position:absolute; left:22px; top:-6px; z-index:10; width:290px; white-space:pre-line;
+         background:#000; color:#fff; border:1px solid var(--accent); border-radius:6px; padding:8px 10px; font-weight:400; font-size:12px; line-height:1.45; }
+.modelHead{display:flex;align-items:center;gap:6px}.modelHead label{flex:1}
+button.iconbtn{padding:2px 0;width:32px;height:28px;font-size:17px;line-height:1;margin:0}
+#mmBox{border:1px solid var(--line);border-radius:8px;padding:10px;margin:8px 0}
+.mmTabs{display:flex;gap:4px;margin-bottom:8px}.mmTabs button{flex:1;padding:6px;font-size:12px;background:transparent;border:1px solid var(--line)}
+.mmTabs button.on{background:var(--accent);border-color:var(--accent)}
+.tag{display:inline-block;font-size:11px;font-weight:600;padding:1px 7px;border-radius:9px;margin-left:6px;color:#fff;vertical-align:1px}
+.tag.tested{background:#1f9d63}.tag.best{background:var(--accent)}.tag.untested{background:#c8324d}
+.hfRepo{border-top:1px solid var(--line);padding:8px 0}.hfRepo a{color:#fff}.hfFile{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:3px 0 3px 10px;font-size:12px}
+#mmBox h3{font-size:13px;margin:12px 0 6px}#mmBox h3:first-child{margin-top:0}
+.mmRow{display:flex;gap:10px;align-items:center;justify-content:space-between;padding:6px 0;border-top:1px solid var(--line)}
+.mmRow b{font-size:13px}.mmRow .help{margin:2px 0 0}.mmRow button{white-space:nowrap}
+.mmMsg{font-size:12px;padding:6px 8px;margin-top:6px;border-left:3px solid var(--line);white-space:pre-wrap;color:var(--text)}
+.mmMsg.bad{border-color:var(--bad)}.mmMsg.ok{border-color:var(--ok)}.mmMsg.warn{border-color:#ffb020}
+.picline{display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-size:12px;margin:6px 0}
+.picline img{height:44px;max-width:80px;object-fit:cover;border-radius:4px}
+.picline q{opacity:.85}
+.pbar{height:8px;background:#2a2a35;border-radius:4px;overflow:hidden;margin:8px 0 4px}.pbar i{display:block;height:100%;background:#7c5cff;transition:width .5s}
+</style>
+</head>
+<body>
+<script>if (window.self !== window.top) document.documentElement.classList.add("embedded");</script>
+<header>
+  <h1>AI Video Pipeline</h1>
+  <span><span id="comfyDot" class="dot"></span> <span id="comfyTxt">checking ComfyUI…</span></span>
+</header>
+<main>
+<section id="form">
+  <div class="tabs"><button type="button" id="tabAuto">Auto</button><button type="button" id="tabManual">Manual</button></div>
+  <input id="easy" type="checkbox" hidden>
+  <div class="help" id="modeHelp"></div>
+  <div id="easyBox">
+    <div class="modelHead"><label>Model</label>
+      <button type="button" id="mmAdd" class="ghost iconbtn" title="Add a model file from your PC (.gguf or .safetensors). It stays where it is.">+</button>
+      <button type="button" id="mmToggle" class="ghost iconbtn" title="Download models (one click)">⬇</button></div>
+    <select id="aModel"><option value="small">LTX-Video 2B 0.9.8 Distilled (fp8) - fast, about 6 min on a GTX 1050 Ti 4 GB</option><option value="ltx13">LTX-Video 13B 0.9.8 Distilled (GGUF Q3) - sharper, keeps the character, experimental</option><option value="vace">Wan 2.1 VACE 1.3B (official) - small Wan, 16 fps, simple motion</option></select>
+    <div class="help" id="aModelHelp"></div>
+    <div id="mmAddMsg"></div>
+    <div class="bar" id="mmRemoveRow" style="margin-top:4px;display:none"><button type="button" id="mmRemoveSel" class="ghost">Remove this model from the list</button></div>
+    <div id="mmBox" style="display:none">
+      <div class="mmTabs"><button type="button" id="mmTabList" class="on">Our list</button><button type="button" id="mmTabAdv">Advanced: search Hugging Face</button></div>
+      <div id="mmDl"></div>
+      <div id="mmList"></div>
+      <div id="mmAdv" style="display:none">
+        <div class="mmMsg bad"><b>Advanced: these models are not checked by us.</b> Anyone can upload to Hugging Face. Before you download, open the model's page and read its comments, likes and downloads.
+          <span class="tip" data-tip="What to check before downloading:&#10;1. Comments (the 'read comments' link): do people say it works, or report broken files?&#10;2. Likes and downloads: popular files are usually fine.&#10;3. Last updated: very new uploads have fewer reports.&#10;4. The model page: it should say which program it is for (ComfyUI) and which model it is (LTX-Video 0.9.x or Wan 2.1 VACE).&#10;When you press Download, the app first reads the start of the file and stops if it can't run it. It can't check if the videos will look good.">?</span></div>
+        <div class="bar" style="margin-top:8px"><input id="hfQ" placeholder="Search Hugging Face, for example: LTXV 13B GGUF" style="flex:1"><button type="button" class="ghost" data-mm="hfsearch">Search</button></div>
+        <div class="help" id="hfInfo"></div>
+        <div id="hfResults"></div>
+      </div>
+    </div>
+    <label>Style</label>
+    <select id="style"></select>
+    <div class="help" id="styleHelp"></div>
+    <label>Quality</label>
+    <select id="quality"></select>
+    <div class="help" id="qualityHelp"></div>
+    <div class="row" id="manualSize">
+      <div><label>Width</label><input id="easyW" type="number" step="32" value="768"></div>
+      <div><label>Height</label><input id="easyH" type="number" step="32" value="416"></div>
+    </div>
+    <h2 style="margin-top:14px">Fine-tune this style</h2>
+    <div class="help">Filled in by the style. Change them if you want, they reset when you pick another style.</div>
+    <div class="row">
+      <div><label>Movement</label><div class="help">less ← 20 … 60 → more</div><input id="aMove" type="number" min="10" max="70" step="5"></div>
+      <div><label>Length</label><div class="help">longer = slower, end can drift</div><select id="aLen"><option value="25">1 second</option><option value="49">2 seconds</option><option value="73">3 seconds</option><option value="97">4 seconds</option><option value="121">5 seconds</option><option value="145">6 seconds</option><option value="169">7 seconds</option></select><div class="help" id="aLenHelp"></div></div>
+    </div>
+    <div class="row">
+      <div><label>Speed</label><div class="help">&nbsp;</div><select id="aSpeed"><option value="18">Slow motion</option><option value="24">Normal</option><option value="30">Fast</option></select></div>
+      <div><label>Seed</label><div class="help">-1 = new each time</div><input id="aSeed" type="number" value="-1"></div>
+    </div>
+    <div class="row">
+      <div><label>Camera</label><select id="aCam"><option value="still">Still</option><option value="zoom">Slow zoom in</option><option value="zoomout">Slow zoom out</option><option value="panr">Slow pan right</option><option value="panl">Slow pan left</option></select></div>
+      <div><label>Versions</label><select id="aCount"><option value="1">1 video</option><option value="3">3 videos (3 seeds)</option><option value="5">5 videos (5 seeds)</option></select></div>
+    </div>
+    <div id="avoidBox">
+      <label>Avoid</label>
+      <div class="help">Things the video should NOT have. Works on the Full model only.</div>
+      <textarea id="aAvoid" style="min-height:50px">extra arms, extra hands, blurry, deformed, talking, text, watermark</textarea>
+      <div class="bar" style="margin-top:6px"><button id="genAvoid" class="ghost" title="Writes the Avoid list for your picture and your prompt">✨ Generate avoid list</button></div>
+      <div class="help" id="genAvoidMsg"></div>
+    </div>
+    <div class="help">Didn't like it? Pick another style and render again, or click "Render 3 seeds" to get 3 versions of the same style.</div>
+  </div>
+
+  <h2>Picture</h2>
+  <select id="image"></select>
+  <div class="help">With a picture the video starts from it and stays closest to it. With no picture, describe the whole scene in the prompt: who or what, the place, the light.</div>
+  <div class="bar"><input type="file" id="upload" accept="image/*" title="Add a picture: the video starts from it">
+    <button type="button" id="noPic" class="ghost" title="Make the video from the prompt alone">Remove picture</button></div>
+  <div class="preview"><img id="imgPrev" alt=""></div>
+
+  <h2>Prompts</h2>
+  <label>Prompt</label>
+  <textarea id="prompt"></textarea>
+  <div class="bar" style="margin-top:6px"><button id="gen" class="ghost" title="Writes a polished video prompt from your picture and the idea you typed in the prompt box">✨ Generate prompt</button></div>
+  <div class="help" id="genMsg"></div>
+  <div id="manualBox">
+  <h2>Start</h2>
+  <label>Preset</label>
+  <div class="help">Loads known-good settings. You can change anything after.</div>
+  <select id="preset">
+    <option value="distilled">LTX-Video 2B 0.9.8 Distilled (fp8) - fast, 8 steps</option>
+    <option value="ltx13">LTX-Video 13B 0.9.8 Distilled (GGUF Q3) - sharper, slower</option>
+    <option value="vace">Wan 2.1 VACE 1.3B (official) - small Wan, 16 fps</option>
+  </select>
+
+  <label>Negative prompt</label>
+  <div class="help">What NOT to do. Ignored when cfg = 1 (the small model).</div>
+  <textarea id="negative" style="min-height:60px"></textarea>
+  <div class="bar" style="margin-top:6px"><button id="genNeg" class="ghost" title="Writes a negative prompt for your picture and your prompt">✨ Generate negative prompt</button></div>
+  <div class="help" id="genNegMsg"></div>
+
+  <h2>Model</h2>
+  <label>Model type</label>
+  <select id="family"><option value="ltx">LTX 2B (checkpoint file)</option><option value="ltx13">LTX 13B (GGUF file)</option><option value="vace">Wan 2.1 VACE</option></select>
+  <label>Model file (LTX 13B and Wan)</label><select id="unet"></select>
+  <label>Checkpoint</label><select id="checkpoint"></select>
+  <div class="row" id="wanRow">
+    <div><label>Scheduler</label><select id="scheduler"><option>simple</option><option>beta</option><option>normal</option><option>karras</option><option>sgm_uniform</option></select></div>
+    <div><label>Shift</label><input id="shift" type="number" step="0.5"></div>
+  </div>
+  <label>Text encoder</label><select id="text_encoder"></select>
+
+  <h2>Size and length</h2>
+  <div class="row">
+    <div><label>Width</label><div class="help">multiple of 32</div><input id="width" type="number" step="32"></div>
+    <div><label>Height</label><div class="help">multiple of 32</div><input id="height" type="number" step="32"></div>
+  </div>
+  <div class="row3">
+    <div><label>Frames</label><div class="help">8·n+1 (73 = 3 s)</div><input id="frames" type="number" step="8"></div>
+    <div><label>Play fps</label><div class="help">video speed</div><input id="fps" type="number"></div>
+    <div><label>Model fps</label><div class="help">told to model, 0 = same</div><input id="cfps" type="number"></div>
+  </div>
+
+  <h2>Sampling</h2>
+  <div class="row">
+    <div><label>Seed</label><div class="help">-1 = random. Seed decides the motion most.</div><input id="seed" type="number"></div>
+    <div><label>Sampler</label><div class="help">&nbsp;</div><select id="sampler"></select></div>
+  </div>
+  <div class="row">
+    <div><label>CFG</label><div class="help">prompt strength; 1 = off</div><input id="cfg" type="number" step="0.1"></div>
+    <div><label>Steps</label><div class="help">auto schedule only</div><input id="steps" type="number"></div>
+  </div>
+  <label>Schedule</label>
+  <select id="schedule">
+    <option value="manual">Manual sigmas (distilled)</option>
+    <option value="auto">LTXV scheduler (dev)</option>
+  </select>
+  <label>Manual sigmas</label><input id="sigmas">
+
+  <h2>Picture hold</h2>
+  <div class="row">
+    <div><label>Compression</label><div class="help">lower = stays closer to the picture</div><input id="comp" type="number"></div>
+    <div><label>Strength</label><div class="help">first-frame lock, 0–1</div><input id="strength" type="number" step="0.05"></div>
+  </div>
+
+  <details>
+    <summary>Advanced</summary>
+    <div class="row">
+      <div><label>Max shift</label><input id="max_shift" type="number" step="0.05"></div>
+      <div><label>Base shift</label><input id="base_shift" type="number" step="0.05"></div>
+    </div>
+    <div class="row">
+      <div><label>Terminal</label><div class="help">auto schedule end</div><input id="terminal" type="number" step="0.05"></div>
+      <div><label>Decode tile</label><div class="help">lower = less VRAM</div><input id="tile" type="number" step="32"></div>
+    </div>
+    <div class="chk"><input id="stretch" type="checkbox"><span>Stretch schedule (auto only)</span></div>
+    <div class="chk"><input id="refine" type="checkbox"><span>Refine 2× to 1080p (very slow: ~50 min for 5 s on a GTX 1050 Ti 4 GB)</span></div>
+    <label>Upscaler</label><select id="upscaler"></select>
+    <label>Refine sigmas</label><input id="refine_sigmas">
+  </details>
+
+  </div>
+
+  <div class="bar">
+    <button id="go">Render</button>
+    <button id="go3" class="ghost">Render 3 seeds</button>
+  </div>
+</section>
+
+<section>
+  <h2>Renders</h2>
+  <div id="jobs"><div class="help">Nothing rendering.</div></div>
+  <h2>Gallery</h2>
+  <div class="help">"Use settings" copies a past video's settings into the form.</div>
+  <div id="gallery" class="grid"></div>
+</section>
+</main>
+
+<script>
+// Presets, styles and qualities live in presets.json (shared with the MCP server); server.py puts them here.
+const { PRESETS, BASE, STYLES, QUALITY, CAM } = /*@PRESETS*/null;
+const FIELDS = Object.keys(BASE).concat(["image","checkpoint","cfg","steps","schedule","sigmas","cfps","comp"]);
+const $ = id => document.getElementById(id);
+
+function setVal(k, v) { const el = $(k); if (!el) return; if (el.type === "checkbox") el.checked = !!v; else el.value = v; }
+// No picture chosen = the video is made from the prompt alone (text to video); the preview hides.
+function showPic() {
+  const v = $("image").value;
+  $("imgPrev").hidden = $("noPic").hidden = !v;
+  if (v) $("imgPrev").src = "/image/" + encodeURIComponent(v);
+}
+function fill(obj) { for (const [k, v] of Object.entries(obj)) setVal(k, v); showPic(); }
+function read() { const s = {}; for (const k of FIELDS) { const el = $(k); s[k] = el.type === "checkbox" ? el.checked : el.value; } return s; }
+function opts(sel, list, keep) { const el = $(sel); const cur = keep || el.value; el.innerHTML = list.map(x => `<option>${x}</option>`).join(""); if (list.includes(cur)) el.value = cur; }
+
+// Saved state (David 11-18): every field with an id survives a page refresh, Auto and Manual both.
+// Kept in this browser only (localStorage); file pickers can't be restored, the chosen picture can.
+function formFields() {
+  return [...document.querySelectorAll("input[id], select[id], textarea[id]")].filter(el => el.type !== "file");
+}
+function saveForm() {
+  const s = {};
+  for (const el of formFields()) s[el.id] = el.type === "checkbox" ? el.checked : el.value;
+  try { localStorage.setItem("form", JSON.stringify(s)); } catch (e) {}
+}
+function restoreForm() {
+  let s = null;
+  try { s = JSON.parse(localStorage.getItem("form") || "null"); } catch (e) {}
+  if (!s) return;
+  for (const el of formFields()) {
+    if (!(el.id in s)) continue;
+    if (el.type === "checkbox") el.checked = !!s[el.id];
+    else if (el.tagName !== "SELECT" || [...el.options].some(o => o.value === s[el.id])) el.value = s[el.id];
+  }
+  showPic();
+  syncEasy(); if (typeof syncSchedule === "function") syncSchedule();
+}
+
+async function api(path, body) {
+  const r = await fetch(path, body ? { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) } : {});
+  return r.json();
+}
+
+async function loadOptions() {
+  const o = await api("/api/options");
+  opts("checkpoint", o.checkpoints); opts("text_encoder", o.text_encoders); opts("sampler", o.samplers);
+  opts("unet", ["", ...(o.unets || []), ...(o.diffusion || [])]);
+  opts("upscaler", o.upscalers); opts("image", ["", ...o.images], o.images.includes("portal.png") ? "portal.png" : undefined);
+  const none = $("image").options[0]; none.value = ""; none.textContent = "No picture: make it from the prompt only";
+}
+
+async function render(n) {
+  const base = $("easy").checked ? easySettings(read()) : read();
+  for (let i = 0; i < n; i++) {
+    const s = { ...base };
+    if (i > 0 || +s.seed < 0) s.seed = Math.floor(Math.random() * 2147483647);
+    await api("/api/render", s);
+  }
+  poll();
+}
+
+function settingsLine(s) {
+  if (!s || !s.checkpoint) return "";
+  // LTX 13B and Wan run from their own model file; the 2B checkpoint only lends its VAE, so name the model file.
+  const model = (s.family && s.family !== "ltx" && s.unet ? s.unet : s.checkpoint).replace(/\.(safetensors|gguf)$/, "");
+  return (s.easy ? `<b>${s.easy}</b> · ` : "") + `${model} · seed ${s.seed} · cfg ${s.cfg} · ${s.schedule === "manual" ? "manual" : s.steps + " steps"} · ${s.frames}f @${s.fps}${+s.cfps ? " (model " + s.cfps + ")" : ""} · comp ${s.comp}${s.refine ? " · refine" : ""}`;
+}
+
+// Polls all the time, not only while something renders: a chat agent can start a render while this page sits
+// open, and it must show up here without a reload. Every 3 s while rendering, every 5 s when idle.
+let pollTimer = null, wasLive = false;
+// When a render was started, in the user's own clock: "Thu 20 Nov 2026, 14:30".
+function whenText(sec) {
+  return new Date(sec * 1000).toLocaleString("en-GB", { weekday: "short", day: "numeric", month: "short",
+    year: "numeric", hour: "2-digit", minute: "2-digit", hour12: false });
+}
+function timeLeft(j) {
+  if (j.status !== "rendering" || j.left_s == null) return "";
+  if (j.left_s <= 0) return " · almost done";
+  return j.left_s < 90 ? " · under 2 min left" : ` · about ${Math.round(j.left_s / 60)} min left`;
+}
+// What the render started from and who started it, so a render a chat agent made can be checked here:
+// the picture it used (or none), the prompt it wrote, and how long it took.
+function picLine(s) {
+  if (!s || !s.checkpoint) return "";
+  const pic = s.image
+    ? `<img src="/image/${encodeURIComponent(s.image)}" alt="" title="${esc(s.image)}"><span>Started from ${esc(s.image)}</span>`
+    : `<span>No picture: made from the prompt</span>`;
+  // Renders a chat agent asked for (saved as "chat agent", or "chat agent (batch)") get the green MCP tag.
+  const viaMcp = s.by && s.by.startsWith("chat agent");
+  const who = !s.by ? "" : viaMcp
+    ? `<span class="tag tested">Chat agent by OpenDaemon ComfyUI MCP${s.by.includes("batch") ? " (batch)" : ""}</span>`
+    : `<span class="tag" style="background:#3b3b55">${esc(s.by)}</span>`;
+  const took = s.render_seconds ? `<span>took ${Math.floor(s.render_seconds / 60)}:${String(Math.round(s.render_seconds % 60)).padStart(2, "0")}</span>` : "";
+  const prompt = s.prompt ? `<q>${esc(s.prompt.length > 160 ? s.prompt.slice(0, 160) + "..." : s.prompt)}</q>` : "";
+  return `<div class="picline">${pic}${who}${took}</div>${prompt ? `<div class="picline">${prompt}</div>` : ""}`;
+}
+async function poll() {
+  clearTimeout(pollTimer);
+  let jobs;
+  try { jobs = await api("/api/jobs"); } catch (e) { pollTimer = setTimeout(poll, 5000); return; }
+  const box = $("jobs");
+  // Only the "no renders yet" placeholder (a direct child). The progress text inside a job card is also
+  // .help, and matching it wiped and rebuilt every card each 3 s: every video reloaded (spinner, page shook).
+  if (jobs.length && box.querySelector(":scope > .help")) box.innerHTML = "";
+  // update each job in place: never rebuild a video that is already there (no reload, no jumping scroll)
+  jobs.forEach((j, i) => {
+    let d = document.getElementById("job-" + j.id);
+    if (!d) {
+      d = document.createElement("div"); d.className = "job"; d.id = "job-" + j.id;
+      d.innerHTML = `<div class="head"></div><div class="meta"></div><div class="vid"></div><div class="err"></div>`;
+      box.insertBefore(d, box.children[i] || null);
+    }
+    const live = j.status === "rendering" || j.status === "queued";
+    const head = `<b>${j.status}</b> · ${Math.floor(j.elapsed / 60)}:${String(j.elapsed % 60).padStart(2, "0")}${timeLeft(j)}` +
+      (j.started ? ` · <span class="when" title="When this render was started">${whenText(j.started)}</span>` : "") +
+      (live ? ` <button class="ghost" onclick="api('/api/cancel',{id:'${j.id}'})">Cancel</button>` : "");
+    if (d.querySelector(".head").innerHTML !== head) d.querySelector(".head").innerHTML = head;
+    let bar = "";
+    if (j.status === "rendering") {
+      const p = j.progress;
+      if (!p) bar = `<div class="pbar"><i style="width:0%"></i></div><div class="help">Loading the model...</div>`;
+      else {
+        const pct = Math.round(100 * p.value / p.max), done = p.value >= p.max;
+        const pass = (j.settings && j.settings.refine) ? ` (pass ${p.pass_no} of 2)` : "";
+        bar = `<div class="pbar"><i style="width:${pct}%"></i></div><div class="help">` +
+          (done ? `Steps done${pass}, now decoding and saving the video...` : `Step ${p.value} of ${p.max}${pass} · ${pct}%`) + `</div>`;
+      }
+    } else if (j.status === "queued") bar = `<div class="help">Waiting for the GPU (one video at a time).</div>`;
+    if (j.note && (j.status === "rendering" || j.status === "queued")) bar += `<div class="help">${j.note}.</div>`;
+    if (!d.querySelector(".prog")) d.querySelector(".meta").insertAdjacentHTML("afterend", `<div class="prog"></div>`);
+    if (d.querySelector(".prog").innerHTML !== bar) d.querySelector(".prog").innerHTML = bar;
+    const meta = picLine(j.settings) + settingsLine(j.settings);
+    if (d.querySelector(".meta").innerHTML !== meta) d.querySelector(".meta").innerHTML = meta;
+    if (j.video && !d.querySelector("video"))
+      d.querySelector(".vid").innerHTML = `<video src="/video/${j.video}" controls loop muted preload="metadata"></video>`;
+    const err = j.error || "";
+    if (d.querySelector(".err").textContent !== err) d.querySelector(".err").textContent = err;
+  });
+  // Big on top: only the newest finished video. Older ones move to the gallery below (small cards).
+  const newestDone = jobs.find(j => j.status === "done");
+  let moved = false;
+  for (const j of jobs) {
+    const d = document.getElementById("job-" + j.id), hide = j.status === "done" && j !== newestDone;
+    if (d && (d.style.display === "none") !== hide) { d.style.display = hide ? "none" : ""; moved = moved || hide; }
+  }
+  if (moved || (newestDone && !GALLERY.some(g => g.video === newestDone.video))) loadGallery();
+  const live = jobs.some(j => j.status === "rendering" || j.status === "queued");
+  if (wasLive && !live) loadGallery();  // once, when the last render finishes
+  wasLive = live;
+  pollTimer = setTimeout(poll, live ? 3000 : 5000);
+}
+
+let GALLERY = [];
+async function loadGallery() {
+  const g = await api("/api/gallery");
+  if (JSON.stringify(g.map(x => x.video)) === JSON.stringify(GALLERY.map(x => x.video))) return;
+  GALLERY = g;
+  $("gallery").innerHTML = GALLERY.map((g, i) => `
+    <div class="card">
+      <video src="/video/${g.video}" controls loop muted preload="metadata"></video>
+      ${g.made ? `<div class="when">${whenText(g.made)}</div>` : ""}
+      ${picLine(g.settings)}<div class="meta">${settingsLine(g.settings) || g.video}</div>
+      ${g.settings.checkpoint ? `<button class="ghost" onclick="fill(GALLERY[${i}].settings)">Use settings</button>` : ""}
+    </div>`).join("");
+}
+
+async function comfyStatus() {
+  const r = await api("/api/comfy");
+  $("comfyDot").className = "dot" + (r.up ? " up" : "");
+  $("comfyTxt").textContent = r.up ? "ComfyUI running" : "ComfyUI is not running";
+}
+
+function syncSchedule() {
+  const manual = $("schedule").value === "manual";
+  $("sigmas").style.display = $("sigmas").previousElementSibling.style.display = manual ? "" : "none";
+  $("steps").disabled = manual;
+}
+$("schedule").onchange = syncSchedule;
+$("preset").onchange = () => { fill({ family: "ltx", unet: "", ...PRESETS[$("preset").value] }); syncSchedule(); };
+setInterval(syncSchedule, 1000);
+$("image").onchange = showPic;
+$("noPic").onclick = () => { $("image").value = ""; $("upload").value = ""; showPic(); saveForm(); };
+$("upload").onchange = async e => {
+  const f = e.target.files[0]; if (!f) return;
+  const data = await new Promise(r => { const fr = new FileReader(); fr.onload = () => r(fr.result); fr.readAsDataURL(f); });
+  const { name } = await api("/api/upload", { name: f.name, data });
+  await loadOptions(); $("image").value = name; $("image").onchange();
+};
+
+// ---------- Easy mode: ready-made styles + quality ----------
+// Every style runs on the small model (distilled). It only changes the knobs that matter there.
+const SMALL = { ...PRESETS.distilled, cfg: 1, strength: 1, cfps: 0, fps: 24, frames: 73, max_shift: 2.05, base_shift: 0.95, sampler: "euler" };
+function easySettings(base) {
+  const st = STYLES[$("style").value], q = QUALITY[$("quality").value];
+  const s = { ...base, ...BASE, ...SMALL, ...st.set, image: base.image, prompt: base.prompt, seed: base.seed, negative: "" };
+  s.prompt = s.prompt.replace(/\s*(Static camera|Slow camera (zoom in|zoom out|pan to the right|pan to the left))\.?/gi, "").trim() + " " + CAM[$("aCam").value];
+  s.comp = $("aMove").value; s.frames = $("aLen").value; s.fps = $("aSpeed").value; s.cfps = 24; s.seed = $("aSeed").value;
+  if (+st.set.cfps > 24) s.cfps = st.set.cfps;
+  if (st.add && !s.prompt.includes(st.add)) s.prompt = s.prompt.trim() + " " + st.add;
+  s.width = q.manual ? $("easyW").value : q.w; s.height = q.manual ? $("easyH").value : q.h; s.refine = !!q.refine;
+  const m = modelKind(), cm = customSel(), secs = (+s.frames - 1) / 24;
+  if (m === "full" || m === "ltx13dev") {
+    Object.assign(s, PRESETS.dev, { cfg: 3, steps: 30, schedule: "auto", negative: $("aAvoid").value, comp: s.comp });
+    s.cfps = 24;  // the full model looked "underwater" when told a higher fps
+  }
+  if (cm && (m === "small" || m === "full")) s.checkpoint = cm.file;  // your own full LTX checkpoint
+  if (m === "ltx13" || m === "ltx13dev")  // model-only LTX: the VAE comes from the 2B distilled checkpoint
+    Object.assign(s, { family: "ltx13", unet: cm ? cm.file : "LTXV-13B-0.9.8-distilled-Q3_K_M.gguf",
+      checkpoint: "ltxv-2b-0.9.8-distilled-fp8.safetensors" });
+  if (m === "vace") {
+    const sizes = { 0: [512, 288], 1: [640, 352], 2: [832, 480], 3: [640, 352] };
+    const [w, hh] = q.manual ? [s.width, s.height] : sizes[$("quality").value];
+    Object.assign(s, { family: m, unet: cm ? cm.file : "wan2.1_vace_1.3B_fp16.safetensors",
+      width: w, height: hh, steps: 20, cfg: 6, sampler: "uni_pc", scheduler: "simple", shift: 8, refine: false,
+      negative: $("aAvoid").value, checkpoint: cm ? cm.name : "Wan 2.1 VACE 1.3B" });
+    s.frames = Math.round(secs * 16) + 1; s.fps = Math.round(+s.fps * 16 / 24);
+  }
+  s.easy = cm ? "★ " + cm.name + " · " : ({ full: "Full · ", ltx13: "LTX 13B · ", vace: "Wan VACE · " }[m] || "");
+  s.easy += st.name + " · " + q.name.split(" ")[0];
+  return s;
+}
+function styleFill() {
+  const s = { ...SMALL, ...STYLES[$("style").value].set };
+  $("aMove").value = s.comp; $("aLen").value = s.frames; $("aSpeed").value = s.fps;
+}
+function syncEasy() {
+  document.body.classList.toggle("easy", $("easy").checked);
+  $("tabAuto").classList.toggle("on", $("easy").checked); $("tabManual").classList.toggle("on", !$("easy").checked);
+  $("modeHelp").textContent = $("easy").checked ? "Auto: pick a style and a quality, the rest is set for you. New to video? Start here." : "Manual: every setting of the model, for full control.";
+  $("styleHelp").textContent = STYLES[$("style").value].help;
+  $("qualityHelp").textContent = QUALITY[$("quality").value].help;
+  const kind = modelKind(), cm = customSel();
+  const full = ["full", "vace", "ltx13dev"].includes(kind);
+  $("avoidBox").style.display = full ? "" : "none";
+  const MH = { ltx13: "13B model, compressed to fit. Same settings as the small one, sharper. May run out of memory on a 4 GB card.",
+    ltx13dev: "LTX dev model, 30 steps: follows the prompt and the Avoid box. Slow.",
+    vace: "Wan 2.1 VACE 1.3B: small Wan, 16 fps. Keeps your picture as the first frame. Uses the Avoid box." };
+  if (cm && cm.downloaded) $("aModelHelp").textContent = "Downloaded from the Models list: " + cm.name + ". Same settings as the matching built-in model." +
+    (MM && MM.vram && cm.card > MM.vram + 0.5 ? ` Made for ${cm.card} GB cards; yours has ${MM.vram} GB, so it can be very slow or run out of memory.` : "");
+  else if (cm) $("aModelHelp").textContent = "Your added model: " + (cm.kind || cm.type) + ". It uses the same settings as the matching built-in model.";
+  else if (MH[kind]) $("aModelHelp").textContent = MH[kind]; else
+  $("aModelHelp").textContent = full ? "The full model: 30 steps, follows the prompt and the Avoid box. About 4x slower than Small. Earlier tests: hands could float, so try a few seeds." : "The small model: 8 steps, what all our good clips used. Ignores the Avoid box.";
+  $("mmRemoveRow").style.display = cm && !cm.downloaded ? "" : "none";
+  $("manualSize").style.display = QUALITY[$("quality").value].manual ? "" : "none";
+  const secs = (+$("aLen").value - 1) / 24, fpsM = kind === "vace" ? 16 : 24;
+  $("aLenHelp").textContent = secs >= 6
+    ? `${secs} s = ${secs * fpsM + 1} frames to make: render time grows about ${secs / 2}x vs 2 s, and the end often melts or drifts. Keep the action simple. For a long, smooth video, make a few short clips and join them.`
+    : `${secs} s = ${secs * fpsM + 1} frames at ${fpsM} fps. Longer = slower to make.`;
+  try { localStorage.setItem("easy", JSON.stringify({ on: $("easy").checked, style: $("style").value, quality: $("quality").value })); } catch (e) {}
+}
+$("style").innerHTML = STYLES.map((s, i) => `<option value="${i}">${s.name}</option>`).join("");
+$("quality").innerHTML = QUALITY.map((q, i) => `<option value="${i}">${q.name}</option>`).join("");
+$("quality").value = 1;
+try { const e = JSON.parse(localStorage.getItem("easy") || "null"); if (e) { $("easy").checked = e.on; $("style").value = e.style; $("quality").value = e.quality; } } catch (e) {}
+for (const id of ["quality", "aLen"]) $(id).onchange = syncEasy;
+// Another model picked: clear the graphics card so the new one gets all the room (a 4 GB card kept only
+// 90 MB of LTX 13B on it after a Wan render, against ~2 GB from a clean start). The server refuses while
+// something renders, so this never breaks a render.
+$("aModel").onchange = () => { syncEasy(); fetch("/api/free", { method: "POST", body: "{}" }).catch(() => {}); };
+$("style").onchange = () => { styleFill(); syncEasy(); };
+$("tabAuto").onclick = () => { $("easy").checked = true; syncEasy(); };
+$("tabManual").onclick = () => { $("easy").checked = false; syncEasy(); };
+try { if (localStorage.getItem("easy") === null) $("easy").checked = true; } catch (e) { $("easy").checked = true; }
+styleFill(); syncEasy();
+
+$("gen").onclick = async () => {
+  const msg = $("genMsg"), btn = $("gen");
+  if (!$("image").value) { msg.textContent = "The writer looks at your picture. Pick or upload one, or write the prompt yourself."; return; }
+  if (!$("prompt").value.trim()) { msg.textContent = "Write your idea in the prompt box first, in your own words."; return; }
+  btn.disabled = true; btn.textContent = "Writing prompt…"; msg.textContent = "Looking at your picture and your idea (about 20 s)…";
+  try {
+    const r = await api("/api/genprompt", { image: $("image").value, idea: $("prompt").value });
+    if (r.error) { msg.textContent = r.error; }
+    else { msg.dataset.old = $("prompt").value; $("prompt").value = r.prompt;
+      msg.innerHTML = `Prompt written by ${r.model}. <a href="#" id="undoGen" style="color:#fff">Undo</a>`;
+      $("undoGen").onclick = e => { e.preventDefault(); $("prompt").value = msg.dataset.old; msg.textContent = "Back to your text."; }; }
+  } catch (e) { msg.textContent = "Could not reach the prompt writer."; }
+  btn.disabled = false; btn.textContent = "✨ Generate prompt";
+};
+async function genNegative(target, btnId, msgId, label) {
+  const msg = $(msgId), btn = $(btnId);
+  if (!$("image").value) { msg.textContent = "The writer looks at your picture. Pick or upload one, or write the prompt yourself."; return; }
+  if (!$("prompt").value.trim()) { msg.textContent = "Write the prompt first: the negative is made to fit it."; return; }
+  btn.disabled = true; btn.textContent = "Writing…"; msg.textContent = "Looking at your picture and your prompt (about 20 s)…";
+  try {
+    const r = await api("/api/genprompt", { image: $("image").value, idea: $("prompt").value, kind: "negative", negative: $(target).value });
+    if (r.error) msg.textContent = r.error;
+    else { const old = $(target).value; $(target).value = r.prompt;
+      msg.innerHTML = `Written by ${r.model}. <a href="#" style="color:#fff">Undo</a>`;
+      msg.querySelector("a").onclick = e => { e.preventDefault(); $(target).value = old; msg.textContent = "Back to your text."; }; }
+  } catch (e) { msg.textContent = "Could not reach the prompt writer."; }
+  btn.disabled = false; btn.textContent = label;
+}
+$("genNeg").onclick = () => genNegative("negative", "genNeg", "genNegMsg", "✨ Generate negative prompt");
+$("genAvoid").onclick = () => genNegative("aAvoid", "genAvoid", "genAvoidMsg", "✨ Generate avoid list");
+$("go").onclick = () => render($("easy").checked ? +$("aCount").value : 1);
+$("go3").onclick = () => render(3);
+
+const TIPS = {
+  preset: "Fills in settings that are known to work for each model. Change anything after.",
+  image: "The first frame. The video starts from this picture and animates it.\nNo picture: the video is made from the prompt alone, so describe the whole scene.",
+  prompt: "Describe the motion and the scene.\nMore detail = more control, but the model mostly follows the picture plus the seed.\nSay what moves and how slowly (\"slowly raises one hand\").",
+  negative: "Things the model should avoid (talking, blur, extra limbs...).\nOnly works when CFG is above 1, so it does nothing on the small model.",
+  family: "Which kind of model.\nLTX 2B = one checkpoint file.\nLTX 13B = GGUF model file + the VAE from the LTX 2B checkpoint.\nWan = GGUF/official model file, its own text reader and VAE.",
+  unet: "The model file for LTX 13B and Wan. Leave empty for LTX 2B.",
+  scheduler: "Wan only: how the noise steps are spaced. simple = default.",
+  shift: "Wan only: like max shift for LTX. Higher = more effort on overall motion and shape. 8 is the usual value.",
+  checkpoint: "The video model.\nDistilled = small and fast, 8 fixed steps, no CFG.\nDev = full model, slower, uses steps + CFG + negative prompt.",
+  text_encoder: "Turns the prompt into numbers for the model. Leave it.",
+  width: "Video width in pixels (multiple of 32).\nBigger = sharper but much slower and more GPU memory.",
+  height: "Video height in pixels (multiple of 32).\nBigger = sharper but much slower and more GPU memory.",
+  frames: "How many frames to make. Must be 8·n+1.\n73 = 3 s, 121 = 5 s at 24 fps.\nMore = longer, but the end tends to melt and render time grows.",
+  fps: "Playback speed of the final mp4.\nHigher = faster motion and shorter video; lower = slower.",
+  cfps: "The fps the MODEL is told (0 = same as play fps).\nHigher than play fps = calmer, smaller motion (worked on the small model).\nOn the full model 48 made it look underwater.",
+  seed: "The random starting noise. On this model it decides MOST of the motion.\nSame seed + same settings = same video.\n-1 = new random seed each time. Try many seeds before changing other settings.",
+  sampler: "The math that removes noise step by step.\neuler = safe default.\nOthers (dpmpp_2m, res_multistep, heun...) can look cleaner or worse - worth testing on the full model.",
+  cfg: "How hard the model follows the prompt AND avoids the negative prompt.\n1 = off (small model must stay 1).\nMore (3-5) = obeys text more, but too high = burnt colours, warping.\nLess = freer, more natural, ignores text more.",
+  steps: "How many clean-up passes (only with the LTXV scheduler).\nMore = more detail and stability, slower (time grows straight with steps).\nToo few = mushy, wobbly.",
+  schedule: "Manual sigmas = fixed list, needed by the distilled model.\nLTXV scheduler = builds a list from Steps, for the full model.",
+  sigmas: "The fixed noise levels for each step (manual schedule).\nOnly change if you know the model was trained for it.",
+  comp: "How much the start picture is blurred/compressed before use.\nLower = video stays closer to the picture but can move less.\nHigher = more freedom to move, can drift from the picture.",
+  strength: "How hard the first frame is locked to your picture.\n1 = exact picture. Lower = first frame can change too.",
+  max_shift: "Shifts effort toward the big noisy steps (overall shape and motion).\nMore = more attention on composition and motion.\nLess = more on fine detail.",
+  base_shift: "Same as max shift, for small videos. Usually leave it.",
+  terminal: "Where the LTXV schedule stops (0-1).\nLower = finishes cleaner but may over-smooth.\nHigher = stops earlier, more grain.",
+  tile: "Decode is done in tiles to save GPU memory.\nLower = less memory, slower, maybe seams. Higher = faster, may run out of memory.",
+  stretch: "Stretches the LTXV schedule so it ends exactly at Terminal. Usually on.",
+  refine: "Second pass: upscales 2x to 1080p and redraws.\nMuch sharper faces/teeth, but ~10x slower (about 50 min for 5 s on a low-end GTX 1050 Ti 4 GB; a better card is faster).",
+  upscaler: "The model that doubles the size before the refine pass.",
+  refine_sigmas: "Noise levels for the refine pass.\nStarting higher (first number) = redraws more; lower = keeps more of the first pass.",
+};
+function addTips() {
+  for (const [id, text] of Object.entries(TIPS)) {
+    const el = $(id); if (!el) continue;
+    let lab = el.parentElement.querySelector("label");
+    if (!lab || ["form", "manualBox"].includes(el.parentElement.id) || el.parentElement.tagName === "DETAILS") { lab = el.previousElementSibling; while (lab && !["LABEL","H2"].includes(lab.tagName)) lab = lab.previousElementSibling; }
+    if (el.type === "checkbox") lab = el.nextElementSibling;
+    if (!lab) continue;
+    const t = document.createElement("span"); t.className = "tip"; t.textContent = "?"; t.dataset.tip = text; lab.appendChild(t);
+  }
+}
+
+// ---------- Models: one-click downloads + "add your own" (server: models_mgr.py) ----------
+let MM = null;  // last /api/models answer
+const BUILTIN_OPTS = [...$("aModel").options].map(o => [o.value, o.textContent]);
+const KIND_OF = { ltxdist: "small", ltxdev: "full", ltx13: "ltx13", ltx13dev: "ltx13dev", vace: "vace" };
+function customSel() { const v = $("aModel").value; return v.startsWith("c:") && MM ? MM.custom.find(c => "c:" + c.file === v) || null : null; }
+function modelKind() { const c = customSel(); return c ? KIND_OF[c.type] : $("aModel").value; }
+function esc(s) { return String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c])); }
+function mmMsg(kind, text) { $("mmAddMsg").innerHTML = text ? `<div class="mmMsg ${kind}">${esc(text)}</div>` : ""; }
+
+function fillModelSelect() {
+  // Only models that are really on this PC show up: built-in ones once downloaded, plus the ones you added.
+  const sel = $("aModel"), cur = sel.value;
+  const have = id => { const c = MM.catalog.find(x => x.builtin === id); return !c || c.installed; };
+  sel.innerHTML = "";
+  for (const [v, t] of BUILTIN_OPTS) if (have(v)) sel.add(new Option(t, v));
+  for (const c of MM.custom) sel.add(new Option("★ " + c.name + (c.downloaded ? "" : " (added)"), "c:" + c.file));
+  if (!sel.options.length) sel.add(new Option("No model yet: download one with the Models button below", ""));
+  if ([...sel.options].some(o => o.value === cur)) sel.value = cur;
+}
+
+function renderDownload() {
+  const d = MM.download, box = $("mmDl");
+  if (!d) { box.innerHTML = ""; return; }
+  const pct = d.total ? Math.round(100 * d.done / d.total) : 0;
+  const tail = d.error ? "\n" + d.error : d.finished ? "\nDone. It's in the Model list now." : "";
+  box.innerHTML = `<div class="mmMsg ${d.error ? "bad" : d.finished ? "ok" : ""}"><b>${esc(d.name)}</b>` +
+    `<div class="pbar"><i style="width:${pct}%"></i></div>${(d.done / 1e9).toFixed(1)} of ${(d.total / 1e9).toFixed(1)} GB · ${pct}%${esc(tail)}` +
+    (d.finished ? "" : ` <button type="button" class="ghost" data-mm="cancel">Cancel</button>`) + `</div>`;
+}
+
+function renderModels() {
+  const busy = MM.download && !MM.download.finished;
+  let h = `<div class="help">Your graphics card: ${MM.vram || "?"} GB · Free disk: ${MM.free} GB. Models download straight from their makers on Hugging Face; we don't host them.</div><h3>One-click download</h3>`;
+  for (const c of MM.catalog) {
+    const big = MM.vram && c.card > MM.vram + 0.5;
+    const tag = c.tested ? `<span class="tag tested" title="We rendered with it and it works">Tested</span>` : `<span class="tag untested" title="Not tested by us yet: it should work, but we haven't rendered with it">Untested</span>`;
+    const best = c.best ? `<span class="tag best" title="The best model in our list that fits your ${MM.vram} GB graphics card">Best for your card</span>` : "";
+    h += `<div class="mmRow"><div><b>${esc(c.name)}</b>${best}${tag}<div class="help">${esc(c.help)} Card: ${c.card} GB or more${big ? " · bigger than your card: may be very slow or fail" : ""}.</div></div>` +
+      (c.installed ? `<span class="help">Installed ✓</span>` : `<button type="button" class="ghost" data-mm="dl" data-id="${c.id}"${busy ? " disabled" : ""}>Download ${c.need_gb} GB</button>`) + `</div>`;
+  }
+  h += `<div class="help" style="margin-top:10px">Have a model file already? Press <b>+</b> next to Model and pick it. It stays where it is.</div>`;
+  if (MM.custom.length) h += `<h3>Your added models</h3>` + MM.custom.map(c => `<div class="mmRow"><div><b>${esc(c.name)}</b><div class="help">${esc(c.kind || c.type)} · ${esc(c.path || c.file)}</div></div><button type="button" class="ghost" data-mm="rm" data-f="${esc(c.file)}">Remove</button></div>`).join("");
+  $("mmList").innerHTML = h;
+  renderDownload();
+}
+
+async function loadModels() {
+  const r = await api("/api/models");
+  if (!r || !r.catalog) throw new Error("this server has no /api/models yet (restart it)");
+  MM = r;
+  fillModelSelect(); renderModels(); syncEasy();
+  if (MM.download && !MM.download.finished) setTimeout(pollDownload, 1500);
+}
+async function pollDownload() {
+  const r = await api("/api/models");
+  MM.download = r.download; renderDownload();
+  if (r.download && !r.download.finished) setTimeout(pollDownload, 1500);
+  else { await loadOptions(); await loadModels(); }
+}
+async function removeCustom(file) {
+  await api("/api/models", { action: "remove", file });
+  await loadModels(); saveForm();
+}
+$("mmToggle").onclick = () => { const b = $("mmBox"); b.style.display = b.style.display === "none" ? "" : "none"; };
+$("mmRemoveSel").onclick = () => { const c = customSel(); if (c) removeCustom(c.file); };
+$("mmBox").onclick = async e => {
+  const t = e.target.closest("[data-mm]"); if (!t) return;
+  const a = t.dataset.mm;
+  if (a === "dl") {
+    const r = await api("/api/models", { action: "download", id: t.dataset.id });
+    await loadModels();
+    if (r.error) $("mmDl").innerHTML = `<div class="mmMsg bad">${esc(r.error)}</div>`;
+  }
+  if (a === "cancel") await api("/api/models", { action: "cancel" });
+  if (a === "rm") removeCustom(t.dataset.f);
+  if (a === "hfsearch") hfSearch($("hfQ").value);
+  if (a === "hfdl") {
+    const msg = t.closest(".hfFile").nextElementSibling;
+    msg.innerHTML = `<div class="mmMsg">Reading the start of the file on Hugging Face to check it can run...</div>`;
+    t.disabled = true;
+    const r = await api("/api/models", { action: "hfdownload", repo: t.dataset.repo, file: t.dataset.file });
+    t.disabled = false;
+    if (r.error) { msg.innerHTML = `<div class="mmMsg bad">Not downloaded: ${esc(r.error)}</div>`; return; }
+    msg.innerHTML = `<div class="mmMsg ok">It can run: ${esc(r.kind)}. Downloading now (progress at the top). It joins the Model list when done.</div>`;
+    await loadModels();
+  }
+};
+// ---------- Advanced: search Hugging Face (always limited to files this card can run) ----------
+let HF_DONE = false;
+function mmTab(adv) {
+  $("mmTabList").classList.toggle("on", !adv); $("mmTabAdv").classList.toggle("on", adv);
+  $("mmList").style.display = adv ? "none" : ""; $("mmAdv").style.display = adv ? "" : "none";
+  if (adv && !HF_DONE) { HF_DONE = true; hfSearch(""); }
+}
+$("mmTabList").onclick = () => mmTab(false);
+$("mmTabAdv").onclick = () => mmTab(true);
+$("hfQ").onkeydown = e => { if (e.key === "Enter") hfSearch($("hfQ").value); };
+async function hfSearch(q) {
+  $("hfInfo").textContent = q.trim() ? `Searching Hugging Face for "${q.trim()}"...` : "Fetching the models that fit your graphics card...";
+  $("hfResults").innerHTML = "";
+  let r;
+  try { r = await api("/api/models", { action: "hfsearch", q }); } catch (e) { r = { error: "No answer from the server." }; }
+  if (r.error) { $("hfInfo").textContent = r.error; return; }
+  $("hfInfo").textContent = `Your graphics card: ${r.vram} GB, so only files up to ${r.cap} GB are shown` +
+    (r.hidden ? ` (${r.hidden} bigger files hidden: they would be too slow or fail on this card).` : ".") +
+    (r.repos.length ? "" : " Nothing found that fits. Try another search.");
+  $("hfResults").innerHTML = r.repos.map(x => `<div class="hfRepo">
+      <b><a href="https://huggingface.co/${esc(x.repo)}" target="_blank" rel="noopener">${esc(x.repo)}</a></b>
+      <div class="help">♥ ${x.likes} · ${x.downloads.toLocaleString()} downloads last month · updated ${esc(x.updated)} · <a href="https://huggingface.co/${esc(x.repo)}/discussions" target="_blank" rel="noopener">read comments</a></div>
+      ${x.files.map(f => `<div class="hfFile"><span>${esc(f.file)} · ${f.gb} GB${f.ours ? `<span class="tag tested" title="This exact file is in our list">In our list</span>` : ""}</span><button type="button" class="ghost" data-mm="hfdl" data-repo="${esc(x.repo)}" data-file="${esc(f.file)}">Download</button></div><div></div>`).join("")}
+    </div>`).join("");
+}
+$("mmAdd").onclick = async () => {
+  if (!MM || !MM.catalog.length) return mmMsg("bad", "The video server needs a restart before models can be added.");
+  mmMsg("", "A file window opened on your PC (check the taskbar if you don't see it). Pick a .gguf or .safetensors video model...");
+  const r = await api("/api/models", { action: "pickadd" });
+  if (r.cancel) return mmMsg("", "");
+  if (r.error) return mmMsg("bad", "Can't use this file: " + r.error);
+  await loadOptions(); await loadModels();
+  $("aModel").value = "c:" + r.file; syncEasy(); saveForm();
+  mmMsg(r.warn ? "warn" : "ok", "Added: " + r.kind + ". It's selected in the Model list now." + (r.warn ? "\n" + r.warn : ""));
+};
+
+(async () => {
+  addTips();
+  await loadOptions();
+  try { await loadModels(); } catch (e) { MM = { catalog: [], custom: [], files: [] }; }
+  fill(BASE); fill(PRESETS.distilled);
+  restoreForm();
+  document.addEventListener("input", saveForm); document.addEventListener("change", saveForm);
+  comfyStatus(); setInterval(comfyStatus, 10000);
+  poll(); loadGallery();
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,36 @@
+[build-system]
+requires = ["hatchling>=1.24"]
+build-backend = "hatchling.build"
+
+[project]
+name = "opendaemon-comfyui-mcp"
+version = "0.1.0"
+description = "Local AI video for any MCP client: render with ComfyUI on your own graphics card, check the clips, fix them, edit and export finished videos."
+readme = "README.md"
+license = "MIT"
+license-files = ["LICENSE"]
+requires-python = ">=3.10"
+authors = [{ name = "OpenDaemon" }]
+keywords = ["mcp", "comfyui", "video", "ltx-video", "ai-video", "image-to-video", "agents", "local-ai"]
+classifiers = [
+  "Programming Language :: Python :: 3",
+  "Operating System :: Microsoft :: Windows",
+  "Topic :: Multimedia :: Video",
+  "Intended Audience :: End Users/Desktop",
+]
+dependencies = [
+  "mcp>=2.0",
+  "pillow>=10",
+  "imageio-ffmpeg>=0.5",
+  "edge-tts>=7.0",
+]
+
+[project.urls]
+Homepage = "https://open-daemon.com"
+
+[project.scripts]
+opendaemon-comfyui-mcp = "opendaemon_comfyui_mcp.__main__:main"
+opendaemon-comfyui-web = "opendaemon_comfyui_mcp.__main__:web"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/opendaemon_comfyui_mcp"]
